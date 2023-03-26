@@ -104,7 +104,7 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
             _ => {
                 return syn::Error::new(
                     variant.span(),
-                    "enum2contract is only implemented for named-field enums",
+                    "enum2contract is only implemented for unit and named-field enums",
                 )
                 .to_compile_error()
                 .into()

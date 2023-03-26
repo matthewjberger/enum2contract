@@ -12,7 +12,7 @@ enum2contract is a no_std compatible rust derive macro that lets users specify c
 Add this to your `Cargo.toml`:
 
 ```toml
-enum2contract = "0.1.1"
+enum2contract = { version = "0.1.2", features = ["serde-derive"] }
 ```
 
 Example:

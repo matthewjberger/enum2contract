@@ -80,8 +80,15 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
                 // Generate the payload struct for the variant.
                 let payload_name =
                     Ident::new(&format!("{}Payload", variant.ident), variant.ident.span());
+
+                let attributes = if cfg!(feature = "serde") {
+                    quote!(#[derive(Default, Debug, PartialEq, Serialize, Deserialize)])
+                } else {
+                    quote!(#[derive(Default, Debug, PartialEq)])
+                };
+
                 let payload_struct = quote! {
-                    #[derive(Default, Debug, PartialEq)]
+                    #attributes
                     pub struct #payload_name {
                         #named
                     }

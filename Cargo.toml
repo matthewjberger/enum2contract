@@ -1,6 +1,6 @@
 [package]
 name = "enum2contract"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Matthew Berger <matthewjordanberger@gmail.com>"]
 description = """
 enum2contract is a no_std compatible rust derive macro that lets users specify contracts for pub/sub style messaging using strongly typed rust enums.
@@ -18,4 +18,9 @@ proc-macro = true
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = "1.0"
-serde = { version = "1.0.158", features = ["derive"] }
+
+serde = { version = "1.0.158", default-features = false, features = ["derive"], optional = true }
+
+[features]
+default = []
+serde-derive = ["serde"]

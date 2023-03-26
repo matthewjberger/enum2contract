@@ -43,11 +43,11 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
                 let payload_type = quote! { #payload_name };
                 let payload_default = quote! { #payload_name::default() };
                 let create_name = Ident::new(
-                    &&to_snake_case(&variant.ident.to_string()),
+                    &to_snake_case(&variant.ident.to_string()),
                     variant.ident.span(),
                 );
                 let topic_string = &topic.value();
-                let args = extract_substrings(&topic_string);
+                let args = extract_substrings(topic_string);
                 let topic_string = remove_substrings(&topic.value(), &args);
                 let args: Vec<_> = args
                     .iter()
@@ -82,11 +82,11 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
                 let payload_type = quote! { #payload_name };
                 let payload_default = quote! { #payload_name::default() };
                 let create_name = Ident::new(
-                    &&to_snake_case(&variant.ident.to_string()),
+                    &to_snake_case(&variant.ident.to_string()),
                     variant.ident.span(),
                 );
                 let topic_string = &topic.value();
-                let args = extract_substrings(&topic_string);
+                let args = extract_substrings(topic_string);
                 let topic_string = remove_substrings(&topic.value(), &args);
                 let args: Vec<_> = args
                     .iter()

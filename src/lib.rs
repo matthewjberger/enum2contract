@@ -1,3 +1,5 @@
+#![no_std]
+
 extern crate alloc;
 
 use alloc::{
@@ -6,7 +8,6 @@ use alloc::{
     vec::Vec,
 };
 use core::iter;
-
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::quote;
@@ -40,14 +41,26 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
                     Err(error) => return error.to_compile_error().into(),
                 };
 
-                // Generate the payload struct for the variant.
                 let payload_name =
                     Ident::new(&format!("{}Payload", variant.ident), variant.ident.span());
-                let payload_struct = quote! {
-                    #[derive(Default, Debug, PartialEq)]
+                let payload_struct = quote!(
+                    #[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
                     pub struct #payload_name;
-                };
+                );
                 payloads.extend(payload_struct);
+
+                let payload_conversions = quote!(
+                    impl #payload_name {
+                        pub fn to_json(&self) -> Result<String, serde_json::Error> {
+                            serde_json::to_string(self)
+                        }
+
+                        pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
+                            serde_json::from_str(json)
+                        }
+                    }
+                );
+                payloads.extend(payload_conversions);
 
                 let payload_type = quote! { #payload_name };
                 let payload_default = quote! { #payload_name::default() };
@@ -81,19 +94,26 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
                 let payload_name =
                     Ident::new(&format!("{}Payload", variant.ident), variant.ident.span());
 
-                let attributes = if cfg!(feature = "serde") {
-                    quote!(#[derive(Default, Debug, PartialEq, Serialize, Deserialize)])
-                } else {
-                    quote!(#[derive(Default, Debug, PartialEq)])
-                };
-
                 let payload_struct = quote! {
-                    #attributes
+                    #[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
                     pub struct #payload_name {
                         #named
                     }
                 };
                 payloads.extend(payload_struct);
+
+                let payload_conversions = quote!(
+                    impl #payload_name {
+                        pub fn to_json(&self) -> Result<String, serde_json::Error> {
+                            serde_json::to_string(self)
+                        }
+
+                        pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
+                            serde_json::from_str(json)
+                        }
+                    }
+                );
+                payloads.extend(payload_conversions);
 
                 let payload_type = quote! { #payload_name };
                 let payload_default = quote! { #payload_name::default() };

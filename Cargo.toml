@@ -1,9 +1,9 @@
 [package]
 name = "enum2contract"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Matthew Berger <matthewjordanberger@gmail.com>"]
 description = """
-enum2contract is a rust derive macro that lets users specify contracts for pub/sub style messaging using strongly typed rust enums.
+enum2contract is a no_std compatible rust derive macro that lets users specify contracts for pub/sub style messaging using strongly typed rust enums.
 """
 homepage = "https://github.com/matthewjberger/enum2contract"
 repository = "https://github.com/matthewjberger/enum2contract"

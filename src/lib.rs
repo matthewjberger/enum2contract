@@ -1,3 +1,12 @@
+extern crate alloc;
+
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
+use core::iter;
+
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::quote;
@@ -173,9 +182,9 @@ fn to_snake_case(input: &str) -> String {
                     s.push('_');
                 }
                 s.push_str(&c.to_lowercase().to_string());
-                std::iter::once(s)
+                iter::once(s)
             } else {
-                std::iter::once(c.to_string())
+                iter::once(c.to_string())
             }
         })
         .collect::<Vec<String>>()

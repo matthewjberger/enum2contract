@@ -5,14 +5,14 @@
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-enum2contract-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs" height="20">](https://docs.rs/enum2contract)
 
 
-enum2contract is a rust derive macro that lets users specify contracts for pub/sub style messaging using strongly typed rust enums.
+enum2contract is a no_std compatible rust derive macro that lets users specify contracts for pub/sub style messaging using strongly typed rust enums.
 
 ## Usage
 
 Add this to your `Cargo.toml`:
 
 ```toml
-enum2contract = "0.1.0"
+enum2contract = "0.1.1"
 ```
 
 Example:
@@ -53,3 +53,5 @@ fn create_start_message() {
     assert_eq!(payload, StartPayload { immediate: false });
 }
 ```
+
+> This crate is `#![no_std]` compatible!

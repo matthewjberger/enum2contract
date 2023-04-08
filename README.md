@@ -12,7 +12,7 @@ enum2contract is a no_std compatible rust derive macro that lets users specify c
 Add this to your `Cargo.toml`:
 
 ```toml
-enum2contract = "0.1.3"
+enum2contract = "0.1.4"
 ```
 
 Example:
@@ -99,4 +99,4 @@ fn notify_payload_from_json_with_data() {
 }
 ```
 
-> This crate is `#![no_std]` compatible!
+> This crate is `#![no_std]` compatible but requires `alloc`.

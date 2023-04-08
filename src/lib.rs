@@ -58,6 +58,14 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
                         pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
                             serde_json::from_str(json)
                         }
+
+                        pub fn to_bytes(&self) -> Result<Vec<u8>, postcard::Error> {
+                            postcard::to_allocvec(self)
+                        }
+
+                        pub fn from_binary(bytes: &[u8]) -> Result<Self, postcard::Error> {
+                            postcard::from_bytes(bytes)
+                        }
                     }
                 );
                 payloads.extend(payload_conversions);

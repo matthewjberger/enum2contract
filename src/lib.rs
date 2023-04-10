@@ -105,7 +105,7 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
                 let payload_struct = quote! {
                     #[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
                     pub struct #payload_name {
-                        #named
+                        pub #named
                     }
                 };
                 payloads.extend(payload_struct);

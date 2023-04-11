@@ -72,10 +72,10 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
 
                 let payload_type = quote! { #payload_name };
                 let payload_default = quote! { #payload_name::default() };
-                let create_name = Ident::new(
-                    &to_snake_case(&variant.ident.to_string()),
-                    variant.ident.span(),
-                );
+                let ident_name = &to_snake_case(&variant.ident.to_string());
+                let create_message = Ident::new(ident_name, variant.ident.span());
+                let create_topic =
+                    Ident::new(&format!("{}_topic", ident_name), variant.ident.span());
                 let topic_string = &topic.value();
                 let args = extract_substrings(topic_string);
                 let topic_string = remove_substrings(&topic.value(), &args);
@@ -85,8 +85,12 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
                     .collect();
 
                 let message_function = quote! {
-                    pub fn #create_name(#(#args: &str),*) -> (String, #payload_type) {
-                        (format!(#topic_string, #(#args),*), #payload_default)
+                    pub fn #create_message(#(#args: &str),*) -> (String, #payload_type) {
+                        (Self::#create_topic(#(#args),*), #payload_default)
+                    }
+
+                    pub fn #create_topic(#(#args: &str),*) -> String {
+                        format!(#topic_string, #(#args),*)
                     }
                 };
                 message_functions.extend(message_function);
@@ -98,6 +102,14 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
                     Err(error) => return error.to_compile_error().into(),
                 };
 
+                let mut fields = proc_macro2::TokenStream::new();
+
+                for field in named.iter() {
+                    fields.extend(quote! {
+                        pub #field,
+                    })
+                }
+
                 // Generate the payload struct for the variant.
                 let payload_name =
                     Ident::new(&format!("{}Payload", variant.ident), variant.ident.span());
@@ -105,7 +117,7 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
                 let payload_struct = quote! {
                     #[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
                     pub struct #payload_name {
-                        pub #named
+                        #fields
                     }
                 };
                 payloads.extend(payload_struct);
@@ -125,10 +137,10 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
 
                 let payload_type = quote! { #payload_name };
                 let payload_default = quote! { #payload_name::default() };
-                let create_name = Ident::new(
-                    &to_snake_case(&variant.ident.to_string()),
-                    variant.ident.span(),
-                );
+                let ident_name = &to_snake_case(&variant.ident.to_string());
+                let create_message = Ident::new(ident_name, variant.ident.span());
+                let create_topic =
+                    Ident::new(&format!("{}_topic", ident_name), variant.ident.span());
                 let topic_string = &topic.value();
                 let args = extract_substrings(topic_string);
                 let topic_string = remove_substrings(&topic.value(), &args);
@@ -138,8 +150,12 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
                     .collect();
 
                 let message_function = quote! {
-                    pub fn #create_name(#(#args: &str),*) -> (String, #payload_type) {
-                        (format!(#topic_string, #(#args),*), #payload_default)
+                    pub fn #create_message(#(#args: &str),*) -> (String, #payload_type) {
+                        (Self::#create_topic(#(#args),*), #payload_default)
+                    }
+
+                    pub fn #create_topic(#(#args: &str),*) -> String {
+                        format!(#topic_string, #(#args),*)
                     }
                 };
                 message_functions.extend(message_function);

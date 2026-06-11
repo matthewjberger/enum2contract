@@ -17,7 +17,7 @@ edition = "2024"
 rust-version = "1.95"
 
 [dependencies]
-enum2contract_derive = { version = "0.3.0", path = "enum2contract_derive" }
+enum2contract-derive = { version = "0.3.0", path = "enum2contract_derive" }
 postcard = { version = "1.0", features = ["alloc"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }

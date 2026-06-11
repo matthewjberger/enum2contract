@@ -1,11 +1,11 @@
 [package]
-name = "enum2contract_derive"
+name = "enum2contract-derive"
 version = "0.3.0"
 authors = ["Matthew Berger <matthewjordanberger@gmail.com>"]
 description = "Derive macro implementation for enum2contract."
 homepage = "https://github.com/matthewjberger/enum2contract"
 repository = "https://github.com/matthewjberger/enum2contract"
-documentation = "https://docs.rs/enum2contract_derive"
+documentation = "https://docs.rs/enum2contract-derive"
 keywords = ["enum", "macro", "contract"]
 categories = ["development-tools::procedural-macro-helpers"]
 license = "MIT"

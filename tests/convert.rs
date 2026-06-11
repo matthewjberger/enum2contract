@@ -1,5 +1,4 @@
 use enum2contract::EnumContract;
-use serde::{Deserialize, Serialize};
 
 #[derive(EnumContract)]
 pub enum Message {
@@ -11,6 +10,9 @@ pub enum Message {
 
     #[topic("system/{id}/start/{mode}")]
     Start { immediate: bool, timeout: u64 },
+
+    #[topic("http/check")]
+    HTTPCheck,
 }
 
 #[test]
@@ -26,15 +28,24 @@ fn topic() {
 }
 
 #[test]
+fn acronym_variant_names_are_snake_cased() {
+    assert_eq!(Message::http_check_topic(), "http/check");
+    assert_eq!(
+        Message::http_check(),
+        ("http/check".to_string(), HTTPCheckPayload)
+    );
+}
+
+#[test]
 fn message() {
     assert_eq!(
         Message::notify("subgroup"),
-        ("notify/subgroup".to_string(), NotifyPayload::default())
+        ("notify/subgroup".to_string(), NotifyPayload)
     );
 
     assert_eq!(
         Message::notify_all(),
-        ("notify_all".to_string(), NotifyAllPayload::default())
+        ("notify_all".to_string(), NotifyAllPayload)
     );
 
     assert_eq!(
@@ -47,14 +58,14 @@ fn message() {
 fn notify_message() {
     let (topic, payload) = Message::notify("partial");
     assert_eq!(topic, "notify/partial");
-    assert_eq!(payload, NotifyPayload::default());
+    assert_eq!(payload, NotifyPayload);
 }
 
 #[test]
 fn notify_all_message() {
     let (topic, payload) = Message::notify_all();
     assert_eq!(topic, "notify_all");
-    assert_eq!(payload, NotifyAllPayload::default());
+    assert_eq!(payload, NotifyAllPayload);
 }
 
 #[test]
@@ -69,6 +80,15 @@ fn start_message() {
             timeout: 100
         }
     );
+}
+
+#[test]
+fn payloads_are_cloneable() {
+    let payload = StartPayload {
+        immediate: true,
+        timeout: 7,
+    };
+    assert_eq!(payload.clone(), payload);
 }
 
 #[test]
@@ -105,10 +125,31 @@ fn start_payload_json_conversion() {
 }
 
 #[test]
+fn notify_payload_binary_conversion() {
+    let payload = NotifyPayload;
+    let bytes = payload.to_bytes().unwrap();
+
+    let payload2 = NotifyPayload::from_bytes(&bytes).unwrap();
+    assert_eq!(payload2, payload);
+}
+
+#[test]
+fn start_payload_binary_conversion() {
+    let payload = StartPayload {
+        immediate: true,
+        timeout: 321,
+    };
+    let bytes = payload.to_bytes().unwrap();
+
+    let payload2 = StartPayload::from_bytes(&bytes).unwrap();
+    assert_eq!(payload2, payload);
+}
+
+#[test]
 fn notify_payload_from_json() {
     let json = "null";
     let payload = NotifyPayload::from_json(json).unwrap();
-    assert_eq!(payload, NotifyPayload::default());
+    assert_eq!(payload, NotifyPayload);
 }
 
 #[test]

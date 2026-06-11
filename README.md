@@ -7,24 +7,23 @@
 
 `enum2contract` is a no_std compatible rust derive macro that lets users specify contracts for pub/sub style messaging using strongly typed rust enums.
 
-Conversion methods for JSON and binary are created for the generated payloads.
+Each generated payload derives `Default`, `Debug`, `Clone`, and `PartialEq`, and gets JSON (`to_json`/`from_json`) and binary (`to_bytes`/`from_bytes`) conversion methods.
 
 ## Usage
 
 Add this to your `Cargo.toml`:
 
 ```toml
-enum2contract = "0.1.6"
-serde = { version = "1.0.158", default-features = false, features = ["derive"] }
-serde_json = { version = "1.0.94", default-features = false, features = ["alloc"] }
-postcard = { version = "1.0.4", features = ["alloc"] }
+enum2contract = "0.2"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+postcard = { version = "1.0", features = ["alloc"] }
 ```
 
 Example:
 
 ```rust
 use enum2contract::EnumContract;
-use serde::{Deserialize, Serialize};
 
 #[derive(EnumContract)]
 pub enum Message {
@@ -79,6 +78,16 @@ fn notify_payload_from_json_with_data() {
             timeout: 40,
         }
     );
+}
+
+#[test]
+fn start_payload_binary_round_trip() {
+    let payload = StartPayload {
+        immediate: true,
+        timeout: 40,
+    };
+    let bytes = payload.to_bytes().unwrap();
+    assert_eq!(StartPayload::from_bytes(&bytes).unwrap(), payload);
 }
 ```
 

@@ -7,13 +7,10 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::iter;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::quote;
-use syn::{
-    parse_macro_input, spanned::Spanned, Data, DeriveInput, Fields, FieldsNamed, LitStr, Variant,
-};
+use syn::{Data, DeriveInput, Fields, LitStr, Variant, parse_macro_input, spanned::Spanned};
 
 #[proc_macro_derive(EnumContract, attributes(topic))]
 pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
@@ -26,7 +23,7 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
         _ => {
             return syn::Error::new(input.span(), "enum2contract only supports enums")
                 .to_compile_error()
-                .into()
+                .into();
         }
     };
 
@@ -34,142 +31,13 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
     let mut payloads = proc_macro2::TokenStream::new();
 
     for variant in data.variants.iter() {
-        match variant.fields {
-            Fields::Unit => {
-                let topic = match parse_topic_attribute(variant) {
-                    Ok(value) => value,
-                    Err(error) => return error.to_compile_error().into(),
-                };
-
-                let payload_name =
-                    Ident::new(&format!("{}Payload", variant.ident), variant.ident.span());
-                let payload_struct = quote!(
-                    #[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
-                    pub struct #payload_name;
-                );
-                payloads.extend(payload_struct);
-
-                let payload_conversions = quote!(
-                    impl #payload_name {
-                        pub fn to_json(&self) -> Result<String, serde_json::Error> {
-                            serde_json::to_string(self)
-                        }
-
-                        pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
-                            serde_json::from_str(json)
-                        }
-
-                        pub fn to_bytes(&self) -> Result<Vec<u8>, postcard::Error> {
-                            postcard::to_allocvec(self)
-                        }
-
-                        pub fn from_binary(bytes: &[u8]) -> Result<Self, postcard::Error> {
-                            postcard::from_bytes(bytes)
-                        }
-                    }
-                );
-                payloads.extend(payload_conversions);
-
-                let payload_type = quote! { #payload_name };
-                let payload_default = quote! { #payload_name::default() };
-                let ident_name = &to_snake_case(&variant.ident.to_string());
-                let create_message = Ident::new(ident_name, variant.ident.span());
-                let create_topic =
-                    Ident::new(&format!("{}_topic", ident_name), variant.ident.span());
-                let topic_string = &topic.value();
-                let args = extract_substrings(topic_string);
-                let topic_string = remove_substrings(&topic.value(), &args);
-                let args: Vec<_> = args
-                    .iter()
-                    .map(|arg| Ident::new(arg, Span::call_site()))
-                    .collect();
-
-                let message_function = quote! {
-                    pub fn #create_message(#(#args: &str),*) -> (String, #payload_type) {
-                        (Self::#create_topic(#(#args),*), #payload_default)
-                    }
-
-                    pub fn #create_topic(#(#args: &str),*) -> String {
-                        format!(#topic_string, #(#args),*)
-                    }
-                };
+        match expand_variant(variant) {
+            Ok((payload, message_function)) => {
+                payloads.extend(payload);
                 message_functions.extend(message_function);
             }
-
-            Fields::Named(FieldsNamed { ref named, .. }) => {
-                let topic = match parse_topic_attribute(variant) {
-                    Ok(value) => value,
-                    Err(error) => return error.to_compile_error().into(),
-                };
-
-                let mut fields = proc_macro2::TokenStream::new();
-
-                for field in named.iter() {
-                    fields.extend(quote! {
-                        pub #field,
-                    })
-                }
-
-                // Generate the payload struct for the variant.
-                let payload_name =
-                    Ident::new(&format!("{}Payload", variant.ident), variant.ident.span());
-
-                let payload_struct = quote! {
-                    #[derive(Default, Debug, PartialEq, Serialize, Deserialize)]
-                    pub struct #payload_name {
-                        #fields
-                    }
-                };
-                payloads.extend(payload_struct);
-
-                let payload_conversions = quote!(
-                    impl #payload_name {
-                        pub fn to_json(&self) -> Result<String, serde_json::Error> {
-                            serde_json::to_string(self)
-                        }
-
-                        pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
-                            serde_json::from_str(json)
-                        }
-                    }
-                );
-                payloads.extend(payload_conversions);
-
-                let payload_type = quote! { #payload_name };
-                let payload_default = quote! { #payload_name::default() };
-                let ident_name = &to_snake_case(&variant.ident.to_string());
-                let create_message = Ident::new(ident_name, variant.ident.span());
-                let create_topic =
-                    Ident::new(&format!("{}_topic", ident_name), variant.ident.span());
-                let topic_string = &topic.value();
-                let args = extract_substrings(topic_string);
-                let topic_string = remove_substrings(&topic.value(), &args);
-                let args: Vec<_> = args
-                    .iter()
-                    .map(|arg| Ident::new(arg, Span::call_site()))
-                    .collect();
-
-                let message_function = quote! {
-                    pub fn #create_message(#(#args: &str),*) -> (String, #payload_type) {
-                        (Self::#create_topic(#(#args),*), #payload_default)
-                    }
-
-                    pub fn #create_topic(#(#args: &str),*) -> String {
-                        format!(#topic_string, #(#args),*)
-                    }
-                };
-                message_functions.extend(message_function);
-            }
-
-            _ => {
-                return syn::Error::new(
-                    variant.span(),
-                    "enum2contract is only implemented for unit and named-field enums",
-                )
-                .to_compile_error()
-                .into()
-            }
-        };
+            Err(error) => return error.to_compile_error().into(),
+        }
     }
 
     let expanded = quote! {
@@ -183,15 +51,91 @@ pub fn derive_enum2contract(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
+type VariantTokens = (proc_macro2::TokenStream, proc_macro2::TokenStream);
+
+fn expand_variant(variant: &Variant) -> Result<VariantTokens, syn::Error> {
+    let topic = parse_topic_attribute(variant)?;
+    let payload_name = Ident::new(&format!("{}Payload", variant.ident), variant.ident.span());
+
+    let payload_struct = match &variant.fields {
+        Fields::Unit => quote! {
+            #[derive(Default, Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+            pub struct #payload_name;
+        },
+        Fields::Named(named_fields) => {
+            let mut fields = proc_macro2::TokenStream::new();
+            for field in named_fields.named.iter() {
+                fields.extend(quote! { pub #field, });
+            }
+            quote! {
+                #[derive(Default, Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+                pub struct #payload_name {
+                    #fields
+                }
+            }
+        }
+        Fields::Unnamed(_) => {
+            return Err(syn::Error::new(
+                variant.span(),
+                "enum2contract is only implemented for unit and named-field enum variants",
+            ));
+        }
+    };
+
+    let payload = quote! {
+        #payload_struct
+
+        impl #payload_name {
+            pub fn to_json(&self) -> Result<String, ::serde_json::Error> {
+                ::serde_json::to_string(self)
+            }
+
+            pub fn from_json(json: &str) -> Result<Self, ::serde_json::Error> {
+                ::serde_json::from_str(json)
+            }
+
+            pub fn to_bytes(&self) -> Result<Vec<u8>, ::postcard::Error> {
+                ::postcard::to_allocvec(self)
+            }
+
+            pub fn from_bytes(bytes: &[u8]) -> Result<Self, ::postcard::Error> {
+                ::postcard::from_bytes(bytes)
+            }
+        }
+    };
+
+    let ident_name = to_snake_case(&variant.ident.to_string());
+    let create_message = Ident::new(&ident_name, variant.ident.span());
+    let create_topic = Ident::new(&format!("{ident_name}_topic"), variant.ident.span());
+    let placeholders = extract_placeholders(&topic)?;
+    let format_string = remove_placeholders(&topic.value(), &placeholders);
+    let parameters: Vec<Ident> = placeholders
+        .iter()
+        .map(|placeholder| Ident::new(placeholder, Span::call_site()))
+        .collect();
+
+    let message_function = quote! {
+        pub fn #create_message(#(#parameters: &str),*) -> (String, #payload_name) {
+            (Self::#create_topic(#(#parameters),*), #payload_name::default())
+        }
+
+        pub fn #create_topic(#(#parameters: &str),*) -> String {
+            format!(#format_string, #(#parameters),*)
+        }
+    };
+
+    Ok((payload, message_function))
+}
+
 fn parse_topic_attribute(variant: &Variant) -> Result<LitStr, syn::Error> {
     let mut topic = None;
     for attr in &variant.attrs {
-        if attr.path.is_ident("topic") {
+        if attr.path().is_ident("topic") {
             match attr.parse_args::<LitStr>() {
                 Ok(literal) => topic = Some(literal),
                 Err(_) => {
                     return Err(syn::Error::new(
-                        attr.path.span(),
+                        attr.path().span(),
                         r#"The 'topic' attribute is missing a String argument. Example: #[topic("system/{id}/start")] "#,
                     ));
                 }
@@ -206,38 +150,65 @@ fn parse_topic_attribute(variant: &Variant) -> Result<LitStr, syn::Error> {
     })
 }
 
-fn extract_substrings(s: &str) -> Vec<&str> {
-    s.split('{')
-        .skip(1)
-        .filter_map(|substr| substr.split_once('}'))
-        .map(|(outer, _)| outer)
-        .collect()
+fn extract_placeholders(topic: &LitStr) -> Result<Vec<String>, syn::Error> {
+    let value = topic.value();
+    let mut placeholders = Vec::new();
+    for segment in value.split('{').skip(1) {
+        let Some((placeholder, _)) = segment.split_once('}') else {
+            continue;
+        };
+        if placeholder.is_empty() {
+            return Err(syn::Error::new(
+                topic.span(),
+                "topic placeholders must be named, like {id}",
+            ));
+        }
+        if syn::parse_str::<Ident>(placeholder).is_err() {
+            return Err(syn::Error::new(
+                topic.span(),
+                format!("topic placeholder '{{{placeholder}}}' is not a valid identifier"),
+            ));
+        }
+        if placeholders.iter().any(|existing| existing == placeholder) {
+            return Err(syn::Error::new(
+                topic.span(),
+                format!("topic placeholder '{{{placeholder}}}' appears more than once"),
+            ));
+        }
+        placeholders.push(placeholder.to_string());
+    }
+    Ok(placeholders)
 }
 
-fn remove_substrings(s: &str, substrings: &[&str]) -> String {
-    let mut result = String::from(s);
-    for substring in substrings {
-        result = result.replace(&format!("{{{}}}", substring), "{}");
+fn remove_placeholders(topic: &str, placeholders: &[String]) -> String {
+    let mut result = String::from(topic);
+    for placeholder in placeholders {
+        result = result.replace(&format!("{{{placeholder}}}"), "{}");
     }
     result
 }
 
 fn to_snake_case(input: &str) -> String {
-    input
-        .chars()
-        .enumerate()
-        .flat_map(|(i, c)| {
-            if c.is_uppercase() {
-                let mut s = String::new();
-                if i != 0 && !input.is_empty() && input.chars().next().unwrap().is_uppercase() {
-                    s.push('_');
-                }
-                s.push_str(&c.to_lowercase().to_string());
-                iter::once(s)
-            } else {
-                iter::once(c.to_string())
+    let characters: Vec<char> = input.chars().collect();
+    let mut result = String::new();
+    for (index, character) in characters.iter().enumerate() {
+        if character.is_uppercase() {
+            let previous_is_lowercase = index > 0 && characters[index - 1].is_lowercase();
+            let previous_is_digit = index > 0 && characters[index - 1].is_ascii_digit();
+            let previous_is_uppercase = index > 0 && characters[index - 1].is_uppercase();
+            let next_is_lowercase = characters
+                .get(index + 1)
+                .is_some_and(|next| next.is_lowercase());
+            if previous_is_lowercase
+                || previous_is_digit
+                || (previous_is_uppercase && next_is_lowercase)
+            {
+                result.push('_');
             }
-        })
-        .collect::<Vec<String>>()
-        .join("")
+            result.extend(character.to_lowercase());
+        } else {
+            result.push(*character);
+        }
+    }
+    result
 }

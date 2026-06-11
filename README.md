@@ -14,11 +14,10 @@ Each generated payload derives `Default`, `Debug`, `Clone`, and `PartialEq`, and
 Add this to your `Cargo.toml`:
 
 ```toml
-enum2contract = "0.2"
-serde = { version = "1.0", default-features = false, features = ["derive"] }
-serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-postcard = { version = "1.0", features = ["alloc"] }
+enum2contract = "0.3"
 ```
+
+No other dependencies are required; the crate re-exports `serde`, `serde_json`, and `postcard` for the generated code.
 
 Example:
 

@@ -1,6 +1,6 @@
 [package]
 name = "enum2contract"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Matthew Berger <matthewjordanberger@gmail.com>"]
 description = """
 enum2contract is a no_std compatible rust derive macro that lets users specify contracts for pub/sub style messaging using strongly typed rust enums.
@@ -9,20 +9,18 @@ Conversion methods for JSON and binary are created for the generated payloads.
 """
 homepage = "https://github.com/matthewjberger/enum2contract"
 repository = "https://github.com/matthewjberger/enum2contract"
+documentation = "https://docs.rs/enum2contract"
+readme = "README.md"
 keywords = ["enum", "macro", "contract"]
 license = "MIT"
 edition = "2024"
 rust-version = "1.95"
 
-[lib]
-proc-macro = true
-
 [dependencies]
-proc-macro2 = "1.0"
-quote = "1.0"
-syn = "2.0"
-
-[dev-dependencies]
+enum2contract_derive = { version = "0.3.0", path = "enum2contract_derive" }
+postcard = { version = "1.0", features = ["alloc"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-postcard = { version = "1.0", features = ["alloc"] }
+
+[workspace]
+members = ["enum2contract_derive"]
